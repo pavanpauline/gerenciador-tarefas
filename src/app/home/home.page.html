@@ -1,20 +1,656 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content [fullscreen]="true" class="custom-home-content">
+  <div class="screen-container">
+    
+    <!-- 1. Cabeçalho Customizado -->
+    <header class="app-header">
+      <div class="header-text">
+        <span class="date-label">{{ dataFormatada }}</span>
+        <h1 class="main-title">Minhas tarefas</h1>
+      </div>
+      <!-- Lupa no cabeçalho abre o Modal de Pesquisa e Filtros -->
+      <button class="circle-btn-search" (click)="abrirFiltrosModal()" aria-label="Buscar e Filtrar">
+        <ion-icon name="search-outline"></ion-icon>
+      </button>
+    </header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+    <!-- Indicador de Filtros Ativos (se houver) -->
+    @if (temFiltroAtivo) {
+      <div class="active-filter-banner">
+        <div class="banner-text">
+          <ion-icon name="options-outline"></ion-icon>
+          <span>
+            Filtros: {{ filtroStatus !== 'Todas' ? filtroStatus : '' }} 
+            {{ filtroPrioridade !== 'Todas' ? '• ' + filtroPrioridade : '' }}
+            {{ filtroCategoria !== 'Todas' ? '• ' + filtroCategoria : '' }}
+            {{ termoBusca ? '• "' + termoBusca + '"' : '' }}
+          </span>
+        </div>
+        <button class="banner-clear-btn" (click)="limparFiltros()">Limpar</button>
+      </div>
+    }
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+    <!-- 2. Card de Progresso (Destaque Escuro) -->
+    <section class="progress-card">
+      <div class="progress-top-row">
+        <div class="progress-info">
+          <span class="progress-label">Seu progresso</span>
+          <h2 class="progress-count">{{ totalConcluidas }} de {{ totalTarefas }} concluídas</h2>
+        </div>
+        <div class="progress-percent">
+          {{ porcentagemProgresso }}%
+        </div>
+      </div>
+
+      <!-- Barra de Progresso Horizontal -->
+      <div class="progress-bar-wrapper">
+        <ion-progress-bar [value]="valorProgresso" class="custom-progress-bar"></ion-progress-bar>
+      </div>
+
+      <!-- Sugestão no Rodapé do Card -->
+      <div class="suggestion-pill" (click)="sugestaoTarefa ? abrirDetalhesModal(sugestaoTarefa) : null">
+        <div class="suggestion-icon-badge">
+          <ion-icon name="flash"></ion-icon>
+        </div>
+        <div class="suggestion-text-wrap">
+          <span class="suggestion-caption">Sugestão: comece por</span>
+          <strong class="suggestion-title">
+            {{ sugestaoTarefa ? sugestaoTarefa.titulo : 'Todas as tarefas concluídas!' }}
+          </strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Seção de Tarefas Pendentes -->
+    <section class="tasks-section">
+      <div class="section-header">
+        <h2 class="section-title">Pendentes</h2>
+        <span class="section-meta">
+          {{ tarefasPendentes.length }} tarefas · por prioridade
+        </span>
+      </div>
+
+      <!-- Lista de Cards Brancos -->
+      <div class="tasks-list">
+        @for (tarefa of tarefasPendentes; track tarefa.id) {
+          <!-- Clicar no card aciona o Modal de Detalhes -->
+          <ion-card class="task-card" (click)="abrirDetalhesModal(tarefa)">
+            <!-- Checkbox Circular -->
+            <div class="task-checkbox-wrap" (click)="$event.stopPropagation()">
+              <ion-checkbox
+                [checked]="tarefa.concluida"
+                (ionChange)="onCheckboxChange(tarefa, $any($event))"
+                aria-label="Marcar como concluída"
+                class="circle-checkbox"
+              ></ion-checkbox>
+            </div>
+
+            <!-- Informações Centrais -->
+            <div class="task-details">
+              <h3 class="task-title">{{ tarefa.titulo }}</h3>
+              <div class="task-meta">
+                <span class="category-name">{{ tarefa.categoria }}</span>
+                <span class="meta-dot">•</span>
+                <span class="deadline-wrap">
+                  <ion-icon name="time-outline" class="clock-icon"></ion-icon>
+                  {{ tarefa.prazo || 'Hoje, 14:00' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Badge de Prioridade à Direita -->
+            <div class="task-badge-wrap">
+              <ion-badge class="priority-tag" [ngClass]="'priority-' + tarefa.prioridade.toLowerCase()">
+                <ion-icon name="cellular-outline" class="priority-icon"></ion-icon>
+                {{ tarefa.prioridade }}
+              </ion-badge>
+            </div>
+          </ion-card>
+        } @empty {
+          <div class="empty-pending-state">
+            <p>{{ temFiltroAtivo ? 'Nenhuma tarefa pendente com os filtros selecionados.' : 'Você não tem tarefas pendentes. Parabéns!' }}</p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- 4. Seção: Tarefas Concluídas -->
+    @if (tarefasConcluidasFiltradas.length > 0) {
+      <section class="completed-section">
+        <button class="completed-toggle-btn" (click)="alternarMostrarConcluidas()">
+          <div class="toggle-left">
+            <ion-icon name="checkmark-circle" class="completed-icon"></ion-icon>
+            <span>Concluídas ({{ tarefasConcluidasFiltradas.length }})</span>
+          </div>
+          <ion-icon [name]="mostrarConcluidas ? 'chevron-down-outline' : 'chevron-forward-outline'"></ion-icon>
+        </button>
+
+        @if (mostrarConcluidas) {
+          <div class="tasks-list completed-list">
+            @for (tarefa of tarefasConcluidasFiltradas; track tarefa.id) {
+              <ion-card class="task-card is-done" (click)="abrirDetalhesModal(tarefa)">
+                <div class="task-checkbox-wrap" (click)="$event.stopPropagation()">
+                  <ion-checkbox
+                    [checked]="true"
+                    (ionChange)="onCheckboxChange(tarefa, $any($event))"
+                    class="circle-checkbox"
+                  ></ion-checkbox>
+                </div>
+                <div class="task-details">
+                  <h3 class="task-title completed-title">{{ tarefa.titulo }}</h3>
+                  <div class="task-meta">
+                    <span>{{ tarefa.categoria }}</span>
+                    <span class="meta-dot">•</span>
+                    <span>Concluída</span>
+                  </div>
+                </div>
+                <div class="task-badge-wrap">
+                  <ion-badge class="priority-tag tag-done">Concluída</ion-badge>
+                </div>
+              </ion-card>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Espaço para não cobrir itens com o rodapé flutuante -->
+    <div class="bottom-spacer"></div>
+
   </div>
+
+  <!-- 5. Barra de Navegação Inferior Flutuante & FAB -->
+  <div class="floating-footer-container">
+    <!-- Barra Pílula Escura -->
+    <nav class="pill-nav-bar">
+      <!-- Botão Ativo "Tarefas" com fundo verde-limão -->
+      <button class="nav-pill-btn active-pill" (click)="limparFiltros()" aria-label="Tarefas">
+        <ion-icon name="list-outline"></ion-icon>
+        <span>Tarefas</span>
+      </button>
+
+      <!-- Botão de Pesquisa (Abre o Bottom Sheet de Pesquisa e Filtros) -->
+      <button class="nav-icon-btn" (click)="abrirFiltrosModal()" aria-label="Pesquisar">
+        <ion-icon name="search-outline"></ion-icon>
+      </button>
+
+      <!-- Botão de Filtros (Abre o Bottom Sheet de Pesquisa e Filtros) -->
+      <button class="nav-icon-btn" (click)="abrirFiltrosModal()" aria-label="Filtros">
+        <ion-icon name="options-outline"></ion-icon>
+      </button>
+    </nav>
+
+    <!-- Botão Flutuante (FAB) Circular Escuro com '+' Verde-limão -->
+    <ion-fab-button class="fab-circle-btn" (click)="abrirNovaTarefaModal()" aria-label="Nova Tarefa">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 1: NOVA TAREFA (BOTTOM SHEET 85%)                   -->
+  <!-- ======================================================== -->
+  <ion-modal
+    [isOpen]="isNovaTarefaModalOpen"
+    (didDismiss)="fecharNovaTarefaModal()"
+    [initialBreakpoint]="0.85"
+    [breakpoints]="[0, 0.5, 0.85, 1]"
+    [handle]="true"
+    class="custom-sheet-modal"
+  >
+    <ng-template>
+      <div class="sheet-container">
+        <!-- Cabeçalho do Modal -->
+        <div class="sheet-top-bar">
+          <h2 class="sheet-heading">Nova Tarefa</h2>
+          <button class="sheet-close-icon-btn" (click)="fecharNovaTarefaModal()" aria-label="Fechar">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="sheet-scrollable-content">
+          <!-- Campo Título -->
+          <div class="form-field-group">
+            <label class="field-label">Título da Tarefa</label>
+            <input
+              type="text"
+              [(ngModel)]="novoTitulo"
+              placeholder="Ex: Revisar slides da apresentação"
+              class="field-input-pill"
+            />
+          </div>
+
+          <!-- Campo Notas Opcional -->
+          <div class="form-field-group">
+            <label class="field-label">Adicionar notas <span class="field-optional">(opcional)</span></label>
+            <textarea
+              [(ngModel)]="novasNotas"
+              placeholder="Adicione detalhes, observações ou links úteis..."
+              rows="3"
+              class="field-textarea"
+            ></textarea>
+          </div>
+
+          <!-- Chips de Categoria -->
+          <div class="form-field-group">
+            <label class="field-label">Categoria</label>
+            <div class="chips-selector-row">
+              @for (cat of categoriasDisponiveis; track cat) {
+                <button
+                  type="button"
+                  class="chip-select-btn"
+                  [class.is-selected]="novaCategoria === cat"
+                  (click)="novaCategoria = cat"
+                >
+                  <ion-icon [name]="getIconeCategoria(cat)"></ion-icon>
+                  <span>{{ cat }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Chips de Prioridade -->
+          <div class="form-field-group">
+            <label class="field-label">Prioridade</label>
+            <div class="chips-selector-row">
+              @for (prio of prioridadesDisponiveis; track prio) {
+                <button
+                  type="button"
+                  class="chip-select-btn priority-chip"
+                  [ngClass]="'prio-' + prio.toLowerCase()"
+                  [class.is-selected]="novaPrioridade === prio"
+                  (click)="novaPrioridade = prio"
+                >
+                  <ion-icon name="cellular-outline"></ion-icon>
+                  <span>{{ prio }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Campos de Prazo (Data e Hora) -->
+          <div class="form-field-group">
+            <label class="field-label">Prazo</label>
+            <div class="datetime-grid">
+              <div class="datetime-box">
+                <span class="sub-field-label">Data</span>
+                <input
+                  type="date"
+                  [(ngModel)]="novoPrazoData"
+                  class="field-input-pill date-input"
+                />
+              </div>
+              <div class="datetime-box">
+                <span class="sub-field-label">Hora</span>
+                <input
+                  type="time"
+                  [(ngModel)]="novoPrazoHora"
+                  class="field-input-pill time-input"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Botão Grande e Escuro: Criar Tarefa -->
+          <button
+            class="sheet-large-btn"
+            (click)="salvarNovaTarefa()"
+            [disabled]="!novoTitulo.trim()"
+          >
+            <ion-icon name="add"></ion-icon>
+            <span>Criar tarefa</span>
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 2: DETALHES DA TAREFA (BOTTOM SHEET 75%)           -->
+  <!-- ======================================================== -->
+  <ion-modal
+    [isOpen]="isDetalhesModalOpen"
+    (didDismiss)="fecharDetalhesModal()"
+    [initialBreakpoint]="0.75"
+    [breakpoints]="[0, 0.5, 0.75, 1]"
+    [handle]="true"
+    class="custom-sheet-modal"
+  >
+    <ng-template>
+      @if (tarefaSelecionada) {
+        <div class="sheet-container">
+          <!-- Topo: Voltar, Editar (lápis) e Excluir (lixo vermelho) -->
+          <div class="sheet-top-bar details-nav-bar">
+            <button class="sheet-back-icon-btn" (click)="fecharDetalhesModal()" aria-label="Voltar">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <div class="details-top-actions">
+              <button class="detail-action-btn edit-action" (click)="abrirEditarTarefa(tarefaSelecionada)" aria-label="Editar">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="detail-action-btn delete-action" (click)="solicitarExclusao(tarefaSelecionada)" aria-label="Excluir">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="sheet-scrollable-content">
+            <!-- Título Grande e Descrição -->
+            <div class="details-header-section">
+              <div class="details-badges-row">
+                <span class="priority-tag" [ngClass]="'priority-' + tarefaSelecionada.prioridade.toLowerCase()">
+                  <ion-icon name="cellular-outline"></ion-icon>
+                  {{ tarefaSelecionada.prioridade }}
+                </span>
+                <span class="status-badge" [class.is-done]="tarefaSelecionada.concluida">
+                  {{ tarefaSelecionada.concluida ? 'Concluída' : 'Pendente' }}
+                </span>
+              </div>
+
+              <h1 class="details-main-title" [class.strike-done]="tarefaSelecionada.concluida">
+                {{ tarefaSelecionada.titulo }}
+              </h1>
+
+              <p class="details-notes-text">
+                {{ tarefaSelecionada.notas || 'Nenhuma nota ou descrição detalhada adicionada.' }}
+              </p>
+            </div>
+
+            <!-- Cards cinzentos claros agrupando as informações -->
+            <div class="info-cards-grid">
+              <!-- Prazo -->
+              <div class="grey-info-card">
+                <div class="card-icon-wrap">
+                  <ion-icon name="time-outline"></ion-icon>
+                </div>
+                <div class="card-text-wrap">
+                  <span class="card-mini-label">Prazo</span>
+                  <strong class="card-main-val">{{ tarefaSelecionada.prazo || 'Hoje, 14:00' }}</strong>
+                </div>
+              </div>
+
+              <!-- Categoria -->
+              <div class="grey-info-card">
+                <div class="card-icon-wrap">
+                  <ion-icon [name]="getIconeCategoria(tarefaSelecionada.categoria)"></ion-icon>
+                </div>
+                <div class="card-text-wrap">
+                  <span class="card-mini-label">Categoria</span>
+                  <strong class="card-main-val">{{ tarefaSelecionada.categoria }}</strong>
+                </div>
+              </div>
+
+              <!-- Data de criação -->
+              <div class="grey-info-card">
+                <div class="card-icon-wrap">
+                  <ion-icon name="calendar-outline"></ion-icon>
+                </div>
+                <div class="card-text-wrap">
+                  <span class="card-mini-label">Data de criação</span>
+                  <strong class="card-main-val">{{ tarefaSelecionada.dataCriacao || '20 de out. de 2026' }}</strong>
+                </div>
+              </div>
+
+              <!-- Armazenamento -->
+              <div class="grey-info-card">
+                <div class="card-icon-wrap">
+                  <ion-icon name="server-outline"></ion-icon>
+                </div>
+                <div class="card-text-wrap">
+                  <span class="card-mini-label">Armazenamento</span>
+                  <strong class="card-main-val">LocalStorage (Local)</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botão grande escuro no fundo: "Marcar como concluída" com ícone de "check" verde -->
+            <button class="sheet-large-btn btn-toggle-done" (click)="alternarStatusDetalhes()">
+              <ion-icon name="checkmark-circle" class="lime-check-icon"></ion-icon>
+              <span>{{ tarefaSelecionada.concluida ? 'Marcar como pendente' : 'Marcar como concluída' }}</span>
+            </button>
+          </div>
+        </div>
+      }
+    </ng-template>
+  </ion-modal>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 3: MODAL DE EXCLUSÃO (BOTTOM SHEET CURTO)          -->
+  <!-- ======================================================== -->
+  <ion-modal
+    [isOpen]="isExcluirModalOpen"
+    (didDismiss)="fecharExcluirModal()"
+    [initialBreakpoint]="0.45"
+    [breakpoints]="[0, 0.45]"
+    [handle]="true"
+    class="custom-delete-sheet-modal"
+  >
+    <ng-template>
+      <div class="delete-sheet-body">
+        <!-- Ícone de lixo vermelho num círculo -->
+        <div class="red-trash-circle">
+          <ion-icon name="trash"></ion-icon>
+        </div>
+
+        <!-- Título -->
+        <h2 class="delete-modal-title">Excluir esta tarefa?</h2>
+
+        <!-- Texto de aviso sobre a ação ser irreversível -->
+        <p class="delete-modal-warning">
+          Esta ação é irreversível. A tarefa 
+          <strong>"{{ tarefaParaExcluir?.titulo }}"</strong> será permanentemente removida.
+        </p>
+
+        <!-- Dois botões grandes: Excluir tarefa (vermelho) e Cancelar (cinzento) -->
+        <div class="delete-modal-btns">
+          <button class="btn-cancel-grey" (click)="fecharExcluirModal()">
+            Cancelar
+          </button>
+          <button class="btn-delete-red" (click)="confirmarExcluirTarefa()">
+            Excluir tarefa
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 4: PESQUISA E FILTROS (BOTTOM SHEET 75%)           -->
+  <!-- ======================================================== -->
+  <ion-modal
+    [isOpen]="isFiltrosModalOpen"
+    (didDismiss)="fecharFiltrosModal()"
+    [initialBreakpoint]="0.75"
+    [breakpoints]="[0, 0.5, 0.75, 1]"
+    [handle]="true"
+    class="custom-sheet-modal"
+  >
+    <ng-template>
+      <div class="sheet-container">
+        <!-- Cabeçalho -->
+        <div class="sheet-top-bar">
+          <h2 class="sheet-heading">Pesquisa e Filtros</h2>
+          <button class="sheet-close-icon-btn" (click)="fecharFiltrosModal()" aria-label="Fechar">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="sheet-scrollable-content">
+          <!-- Barra de Pesquisa no Topo -->
+          <div class="search-modal-box">
+            <ion-searchbar
+              [(ngModel)]="termoBusca"
+              placeholder="Buscar por palavras-chave..."
+              [debounce]="150"
+              animated="true"
+              class="custom-searchbar"
+              show-clear-button="always"
+            ></ion-searchbar>
+          </div>
+
+          <!-- Filtro por Status: Todas, Pendentes, Concluídas -->
+          <div class="form-field-group">
+            <label class="field-label">Status</label>
+            <div class="chips-selector-row">
+              @for (st of ['Todas', 'Pendentes', 'Concluídas']; track st) {
+                <button
+                  type="button"
+                  class="chip-select-btn"
+                  [class.is-selected]="filtroStatus === st"
+                  (click)="filtroStatus = $any(st)"
+                >
+                  <span>{{ st }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Filtro por Prioridade: Todas, Alta, Média, Baixa -->
+          <div class="form-field-group">
+            <label class="field-label">Prioridade</label>
+            <div class="chips-selector-row">
+              @for (prio of ['Todas', 'Alta', 'Média', 'Baixa']; track prio) {
+                <button
+                  type="button"
+                  class="chip-select-btn priority-chip"
+                  [ngClass]="'prio-' + prio.toLowerCase()"
+                  [class.is-selected]="filtroPrioridade === prio"
+                  (click)="filtroPrioridade = prio"
+                >
+                  <span>{{ prio }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Filtro por Categoria: Todas, Trabalho, Estudo, Pessoal -->
+          <div class="form-field-group">
+            <label class="field-label">Categoria</label>
+            <div class="chips-selector-row">
+              @for (cat of ['Todas', 'Trabalho', 'Estudo', 'Pessoal']; track cat) {
+                <button
+                  type="button"
+                  class="chip-select-btn"
+                  [class.is-selected]="filtroCategoria === cat"
+                  (click)="filtroCategoria = cat"
+                >
+                  <span>{{ cat }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Rodapé com Contador e Botões -->
+          <div class="filter-bottom-actions">
+            <span class="filter-results-counter">
+              {{ tarefasFiltradas.length }} tarefa(s) encontrada(s)
+            </span>
+            <div class="filter-btn-group">
+              <button class="btn-clear-outline" (click)="limparFiltros()">
+                Limpar
+              </button>
+              <button class="sheet-large-btn apply-filter-btn" (click)="fecharFiltrosModal()">
+                Ver resultados
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 5 (AUXILIAR): EDITAR TAREFA (BOTTOM SHEET 85%)      -->
+  <!-- ======================================================== -->
+  <ion-modal
+    [isOpen]="isEditarModalOpen"
+    (didDismiss)="fecharEditarModal()"
+    [initialBreakpoint]="0.85"
+    [breakpoints]="[0, 0.5, 0.85, 1]"
+    [handle]="true"
+    class="custom-sheet-modal"
+  >
+    <ng-template>
+      <div class="sheet-container">
+        <div class="sheet-top-bar">
+          <h2 class="sheet-heading">Editar Tarefa</h2>
+          <button class="sheet-close-icon-btn" (click)="fecharEditarModal()" aria-label="Fechar">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="sheet-scrollable-content">
+          <div class="form-field-group">
+            <label class="field-label">Título da Tarefa</label>
+            <input
+              type="text"
+              [(ngModel)]="editTitulo"
+              class="field-input-pill"
+            />
+          </div>
+
+          <div class="form-field-group">
+            <label class="field-label">Notas</label>
+            <textarea
+              [(ngModel)]="editNotas"
+              rows="3"
+              class="field-textarea"
+            ></textarea>
+          </div>
+
+          <div class="form-field-group">
+            <label class="field-label">Categoria</label>
+            <div class="chips-selector-row">
+              @for (cat of categoriasDisponiveis; track cat) {
+                <button
+                  type="button"
+                  class="chip-select-btn"
+                  [class.is-selected]="editCategoria === cat"
+                  (click)="editCategoria = cat"
+                >
+                  <ion-icon [name]="getIconeCategoria(cat)"></ion-icon>
+                  <span>{{ cat }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="form-field-group">
+            <label class="field-label">Prioridade</label>
+            <div class="chips-selector-row">
+              @for (prio of prioridadesDisponiveis; track prio) {
+                <button
+                  type="button"
+                  class="chip-select-btn priority-chip"
+                  [ngClass]="'prio-' + prio.toLowerCase()"
+                  [class.is-selected]="editPrioridade === prio"
+                  (click)="editPrioridade = prio"
+                >
+                  <ion-icon name="cellular-outline"></ion-icon>
+                  <span>{{ prio }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="form-field-group">
+            <label class="field-label">Prazo</label>
+            <input
+              type="text"
+              [(ngModel)]="editPrazo"
+              placeholder="Ex: Hoje, 14:00"
+              class="field-input-pill"
+            />
+          </div>
+
+          <button
+            class="sheet-large-btn"
+            (click)="salvarEdicaoTarefa()"
+            [disabled]="!editTitulo.trim()"
+          >
+            <span>Salvar alterações</span>
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
 </ion-content>
