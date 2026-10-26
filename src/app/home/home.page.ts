@@ -10,7 +10,12 @@ import {
   IonIcon,
   IonSearchbar,
   IonFabButton,
-  IonModal
+  IonModal,
+  IonList,
+  IonItemSliding,
+  IonItemOptions,
+  IonItemOption,
+  IonItem
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -29,7 +34,10 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   checkmarkCircle,
+  checkmarkCircleOutline,
+  checkmarkOutline,
   arrowBackOutline,
+  arrowUndoOutline,
   folderOutline,
   calendarOutline,
   serverOutline,
@@ -37,7 +45,8 @@ import {
   schoolOutline,
   personOutline
 } from 'ionicons/icons';
-import { TarefasService, Tarefa } from '../services/tarefas.service';
+import { TarefasService, Tarefa, ImpactStyle } from '../services/tarefas.service';
+import { EstatisticasPage } from '../estatisticas/estatisticas.page';
 
 @Component({
   selector: 'app-home',
@@ -55,7 +64,13 @@ import { TarefasService, Tarefa } from '../services/tarefas.service';
     IonIcon,
     IonSearchbar,
     IonFabButton,
-    IonModal
+    IonModal,
+    IonList,
+    IonItemSliding,
+    IonItemOptions,
+    IonItemOption,
+    IonItem,
+    EstatisticasPage
   ],
 })
 export class HomePage {
@@ -65,6 +80,7 @@ export class HomePage {
   isExcluirModalOpen: boolean = false;
   isFiltrosModalOpen: boolean = false;
   isEditarModalOpen: boolean = false;
+  isEstatisticasModalOpen: boolean = false;
 
   // Tarefas em foco
   tarefaSelecionada: Tarefa | null = null;
@@ -115,7 +131,10 @@ export class HomePage {
       chevronDownOutline,
       chevronForwardOutline,
       checkmarkCircle,
+      checkmarkCircleOutline,
+      checkmarkOutline,
       arrowBackOutline,
+      arrowUndoOutline,
       folderOutline,
       calendarOutline,
       serverOutline,
@@ -334,6 +353,36 @@ export class HomePage {
     }
   }
 
+  // --- AÇÕES RÁPIDAS COM GESTO DE DESLIZAR (SWIPE) ---
+  async concluirTarefa(tarefa: Tarefa, slidingItem?: IonItemSliding) {
+    if (slidingItem) {
+      await slidingItem.close();
+    }
+    const novoStatus = !tarefa.concluida;
+    await this.tarefasService.atualizarTarefa({
+      ...tarefa,
+      concluida: novoStatus
+    });
+    if (this.tarefaSelecionada && this.tarefaSelecionada.id === tarefa.id) {
+      this.tarefaSelecionada = { ...this.tarefaSelecionada, concluida: novoStatus };
+    }
+  }
+
+  async excluirTarefa(tarefa: Tarefa, slidingItem?: IonItemSliding) {
+    if (slidingItem) {
+      await slidingItem.close();
+    }
+    this.tarefasService.excluirTarefa(tarefa.id);
+    await this.tarefasService.dispararFeedbackTatil(ImpactStyle.Light);
+
+    if (this.tarefaSelecionada && this.tarefaSelecionada.id === tarefa.id) {
+      this.fecharDetalhesModal();
+    }
+    if (this.tarefaParaExcluir && this.tarefaParaExcluir.id === tarefa.id) {
+      this.fecharExcluirModal();
+    }
+  }
+
   // --- 3. MODAL DE EXCLUSÃO ---
   solicitarExclusao(tarefa: Tarefa) {
     this.tarefaParaExcluir = tarefa;
@@ -347,13 +396,7 @@ export class HomePage {
 
   confirmarExcluirTarefa() {
     if (this.tarefaParaExcluir) {
-      this.tarefasService.excluirTarefa(this.tarefaParaExcluir.id);
-
-      // Se o modal de detalhes estiver com a mesma tarefa, fecha-o
-      if (this.tarefaSelecionada && this.tarefaSelecionada.id === this.tarefaParaExcluir.id) {
-        this.fecharDetalhesModal();
-      }
-
+      this.excluirTarefa(this.tarefaParaExcluir);
       this.fecharExcluirModal();
     }
   }
@@ -404,6 +447,15 @@ export class HomePage {
     this.tarefasService.atualizarTarefa(atualizada);
     this.tarefaSelecionada = atualizada;
     this.fecharEditarModal();
+  }
+
+  // --- 6. MODAL: ESTATÍSTICAS / DASHBOARD ---
+  abrirEstatisticasModal() {
+    this.isEstatisticasModalOpen = true;
+  }
+
+  fecharEstatisticasModal() {
+    this.isEstatisticasModalOpen = false;
   }
 
   // Auxiliares

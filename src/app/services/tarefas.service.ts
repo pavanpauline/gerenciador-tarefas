@@ -1,4 +1,7 @@
 import { Injectable } from '@angular/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
+export { ImpactStyle };
 
 export interface Tarefa {
   id: string;
@@ -140,7 +143,34 @@ export class TarefasService {
     return this.tarefas;
   }
 
-  adicionarTarefa(tarefa: Omit<Tarefa, 'id' | 'concluida'>) {
+  /**
+   * Dispara feedback tátil (vibração) utilizando @capacitor/haptics.
+   * Possui tratamento com try/catch e fallback gracioso para a Web Vibration API (navigator.vibrate),
+   * garantindo que a aplicação funcione com segurança e sem erros em ambiente web/browser.
+   */
+  async dispararFeedbackTatil(style: ImpactStyle = ImpactStyle.Medium): Promise<void> {
+    try {
+      await Haptics.impact({ style });
+    } catch {
+      try {
+        // Fallback para navegadores com suporte à Web Vibration API (ex: mobile web)
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(40);
+        }
+      } catch {
+        // Ignora silenciosamente se o navegador não permitir ou não tiver suporte
+      }
+    }
+  }
+
+  /**
+   * Método auxiliar para disparar vibração.
+   */
+  async vibrar(style: ImpactStyle = ImpactStyle.Medium): Promise<void> {
+    return this.dispararFeedbackTatil(style);
+  }
+
+  async adicionarTarefa(tarefa: Omit<Tarefa, 'id' | 'concluida'>): Promise<void> {
     const hoje = new Date();
     const dataCriacao = tarefa.dataCriacao || hoje.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
     const novaTarefa: Tarefa = {
@@ -151,18 +181,74 @@ export class TarefasService {
     };
     this.tarefas.unshift(novaTarefa); // adiciona no topo
     this.salvarNoStorage();
+    await this.dispararFeedbackTatil(ImpactStyle.Medium);
   }
 
-  atualizarTarefa(tarefaAtualizada: Tarefa) {
+  async atualizarTarefa(tarefaAtualizada: Tarefa): Promise<void> {
     const index = this.tarefas.findIndex(t => t.id === tarefaAtualizada.id);
     if (index !== -1) {
+      const estavaConcluida = this.tarefas[index].concluida;
       this.tarefas[index] = tarefaAtualizada;
       this.salvarNoStorage();
+
+      // Dispara feedback tátil quando a tarefa for marcada como concluída
+      if (!estavaConcluida && tarefaAtualizada.concluida) {
+        await this.dispararFeedbackTatil(ImpactStyle.Medium);
+      }
     }
   }
 
   excluirTarefa(id: string) {
     this.tarefas = this.tarefas.filter(t => t.id !== id);
     this.salvarNoStorage();
+  }
+
+  /**
+   * Retorna métricas e estatísticas agregadas em tempo real a partir das tarefas salvas.
+   */
+  obterEstatisticas() {
+    const total = this.tarefas.length;
+    const concluidas = this.tarefas.filter(t => t.concluida).length;
+    const pendentes = total - concluidas;
+    const taxaConclusao = total > 0 ? Math.round((concluidas / total) * 100) : 0;
+
+    // Prioridades (Alta, Média, Baixa)
+    const prioridades: ('Alta' | 'Média' | 'Baixa')[] = ['Alta', 'Média', 'Baixa'];
+    const porPrioridade = prioridades.map(prio => {
+      const tarefasPrio = this.tarefas.filter(t => t.prioridade === prio);
+      const conc = tarefasPrio.filter(t => t.concluida).length;
+      return {
+        prioridade: prio,
+        total: tarefasPrio.length,
+        concluidas: conc,
+        pendentes: tarefasPrio.length - conc,
+        taxaConclusao: tarefasPrio.length > 0 ? Math.round((conc / tarefasPrio.length) * 100) : 0,
+        percentualDoTotal: total > 0 ? Math.round((tarefasPrio.length / total) * 100) : 0
+      };
+    });
+
+    // Categorias (Trabalho, Estudo, Pessoal)
+    const categorias = ['Trabalho', 'Estudo', 'Pessoal'];
+    const porCategoria = categorias.map(cat => {
+      const tarefasCat = this.tarefas.filter(t => t.categoria === cat);
+      const conc = tarefasCat.filter(t => t.concluida).length;
+      return {
+        categoria: cat,
+        total: tarefasCat.length,
+        concluidas: conc,
+        pendentes: tarefasCat.length - conc,
+        taxaConclusao: tarefasCat.length > 0 ? Math.round((conc / tarefasCat.length) * 100) : 0,
+        percentualDoTotal: total > 0 ? Math.round((tarefasCat.length / total) * 100) : 0
+      };
+    });
+
+    return {
+      total,
+      concluidas,
+      pendentes,
+      taxaConclusao,
+      porPrioridade,
+      porCategoria
+    };
   }
 }

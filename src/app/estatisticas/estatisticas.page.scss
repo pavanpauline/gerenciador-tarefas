@@ -1,0 +1,549 @@
+.stats-screen-wrapper {
+  background: #f5f6f8;
+  color: #0d121c;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  &.is-modal-view {
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+// Cabeçalho do Dashboard
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 20px 14px 20px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+
+  .header-titles {
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 4px;
+
+      ion-icon {
+        color: #10b981;
+        font-size: 13px;
+      }
+    }
+
+    .main-stats-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0b0f19;
+      margin: 0;
+      letter-spacing: -0.6px;
+    }
+  }
+
+  .circle-close-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #111827;
+    font-size: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s ease, background 0.15s ease;
+
+    &:active {
+      transform: scale(0.92);
+      background: #f0f1f4;
+    }
+  }
+}
+
+.stats-scroll-body {
+  padding: 0 20px 30px 20px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
+  flex: 1;
+}
+
+// 1. Cartão Principal de Destaque
+.highlight-stats-card {
+  position: relative;
+  background: #14161b;
+  border-radius: 24px;
+  padding: 24px 22px;
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+  margin-bottom: 24px;
+  overflow: hidden;
+
+  .card-glow-bg {
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(200, 255, 61, 0.15) 0%, rgba(20, 22, 27, 0) 70%);
+    pointer-events: none;
+  }
+
+  .highlight-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+
+    .highlight-caption {
+      font-size: 13px;
+      font-weight: 500;
+      color: #8e95a2;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .highlight-subtitle {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
+
+    .highlight-percentage {
+      font-size: 38px;
+      font-weight: 800;
+      color: #c8ff3d;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+  }
+
+  // Barra de progresso com track escuro
+  .custom-progress-track {
+    width: 100%;
+    height: 10px;
+    background: #232730;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 20px;
+
+    .progress-fill {
+      height: 100%;
+      background: #c8ff3d;
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+    }
+  }
+
+  // Pílulas de resumo
+  .summary-pills-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+
+    .summary-pill {
+      background: #1d2129;
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+
+      .pill-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-bottom: 6px;
+
+        &.dot-total { background: #94a3b8; }
+        &.dot-done { background: #c8ff3d; }
+        &.dot-pending { background: #f59e0b; }
+      }
+
+      .pill-label {
+        font-size: 11px;
+        color: #8e95a2;
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+
+      .pill-value {
+        font-size: 18px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+    }
+  }
+
+  // Insight Inteligente
+  .smart-insight-box {
+    background: #1d2129;
+    border-radius: 16px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .insight-icon-circle {
+      background: #c8ff3d;
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      ion-icon {
+        color: #14161b;
+        font-size: 18px;
+      }
+    }
+
+    .insight-text {
+      font-size: 12px;
+      line-height: 1.4;
+      color: #cbd5e1;
+      font-weight: 500;
+      margin: 0;
+    }
+  }
+}
+
+// 2 e 3. Seções Gerais
+.stats-section {
+  margin-bottom: 24px;
+
+  .section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .title-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      ion-icon {
+        font-size: 18px;
+        color: #0b0f19;
+      }
+
+      .section-heading {
+        font-size: 17px;
+        font-weight: 700;
+        color: #0b0f19;
+        margin: 0;
+        letter-spacing: -0.3px;
+      }
+    }
+
+    .section-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      background: #e2e8f0;
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+  }
+}
+
+// Grid de Prioridades
+.priority-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.priority-metric-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+
+  .prio-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .prio-badge-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+
+      ion-icon {
+        font-size: 13px;
+      }
+    }
+
+    .prio-percent-tag {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+  }
+
+  &.prio-alta {
+    .prio-badge-wrap {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+    }
+    .mini-fill {
+      background: #dc2626;
+    }
+  }
+
+  &.prio-média,
+  &.prio-media {
+    .prio-badge-wrap {
+      background: rgba(245, 158, 11, 0.12);
+      color: #d97706;
+    }
+    .mini-fill {
+      background: #d97706;
+    }
+  }
+
+  &.prio-baixa {
+    .prio-badge-wrap {
+      background: rgba(34, 197, 94, 0.12);
+      color: #16a34a;
+    }
+    .mini-fill {
+      background: #16a34a;
+    }
+  }
+
+  .prio-counts-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+
+    .prio-big-count {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+
+      .count-number {
+        font-size: 24px;
+        font-weight: 800;
+        color: #0b0f19;
+      }
+
+      .count-sublabel {
+        font-size: 13px;
+        color: #8e95a2;
+        font-weight: 500;
+      }
+    }
+
+    .prio-status-split {
+      display: flex;
+      gap: 12px;
+
+      .split-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 600;
+
+        .split-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+
+        &.done {
+          color: #16a34a;
+          .split-dot { background: #16a34a; }
+        }
+
+        &.pending {
+          color: #64748b;
+          .split-dot { background: #cbd5e1; }
+        }
+      }
+    }
+  }
+
+  .mini-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 8px;
+
+    .mini-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+  }
+
+  .prio-footer-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #8e95a2;
+
+    strong {
+      color: #0b0f19;
+      font-weight: 700;
+    }
+  }
+}
+
+// Grid de Categorias
+.category-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-metric-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+
+  .cat-card-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .cat-icon-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+
+      &.cat-badge-trabalho {
+        background: rgba(14, 165, 233, 0.12);
+        color: #0284c7;
+      }
+
+      &.cat-badge-estudo {
+        background: rgba(168, 85, 247, 0.12);
+        color: #9333ea;
+      }
+
+      &.cat-badge-pessoal {
+        background: rgba(249, 115, 22, 0.12);
+        color: #ea580c;
+      }
+    }
+
+    .cat-title-wrap {
+      flex: 1;
+
+      .cat-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0b0f19;
+        margin: 0 0 2px 0;
+      }
+
+      .cat-total-meta {
+        font-size: 12px;
+        color: #8e95a2;
+        font-weight: 500;
+      }
+    }
+
+    .cat-percent-circle {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0b0f19;
+    }
+  }
+
+  .mini-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 10px;
+
+    .mini-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+
+      &.fill-trabalho { background: #0284c7; }
+      &.fill-estudo { background: #9333ea; }
+      &.fill-pessoal { background: #ea580c; }
+    }
+  }
+
+  .cat-details-row {
+    display: flex;
+    gap: 8px;
+
+    .cat-detail-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+
+      &.pill-green {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+
+        .mini-icon-check {
+          font-weight: 800;
+        }
+      }
+
+      &.pill-gray {
+        background: #f1f5f9;
+        color: #64748b;
+
+        .mini-icon-clock {
+          font-size: 8px;
+        }
+      }
+    }
+  }
+}
+
+.stats-bottom-spacer {
+  height: 40px;
+}

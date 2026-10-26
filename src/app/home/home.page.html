@@ -31,9 +31,15 @@
 
     <!-- 2. Card de Progresso (Destaque Escuro) -->
     <section class="progress-card">
-      <div class="progress-top-row">
+      <div class="progress-top-row" (click)="abrirEstatisticasModal()" style="cursor: pointer;" title="Abrir estatísticas em tempo real">
         <div class="progress-info">
-          <span class="progress-label">Seu progresso</span>
+          <div class="progress-label-wrap">
+            <span class="progress-label">Seu progresso</span>
+            <span class="view-stats-hint">
+              <ion-icon name="stats-chart-outline"></ion-icon>
+              <span>Ver dashboard</span>
+            </span>
+          </div>
           <h2 class="progress-count">{{ totalConcluidas }} de {{ totalTarefas }} concluídas</h2>
         </div>
         <div class="progress-percent">
@@ -69,48 +75,80 @@
         </span>
       </div>
 
-      <!-- Lista de Cards Brancos -->
-      <div class="tasks-list">
+      <!-- Lista de Cards com Gesto de Deslizar (Swipe) -->
+      <ion-list lines="none" class="tasks-list">
         @for (tarefa of tarefasPendentes; track tarefa.id) {
-          <!-- Clicar no card aciona o Modal de Detalhes -->
-          <ion-card class="task-card" (click)="abrirDetalhesModal(tarefa)">
-            <!-- Checkbox Circular -->
-            <div class="task-checkbox-wrap" (click)="$event.stopPropagation()">
-              <ion-checkbox
-                [checked]="tarefa.concluida"
-                (ionChange)="onCheckboxChange(tarefa, $any($event))"
-                aria-label="Marcar como concluída"
-                class="circle-checkbox"
-              ></ion-checkbox>
-            </div>
+          <ion-item-sliding #slidingItem class="task-sliding-item">
+            <!-- Opção Deslizar para Direita (side="start"): Concluir -->
+            <ion-item-options side="start">
+              <ion-item-option
+                class="sliding-opt-complete"
+                (click)="concluirTarefa(tarefa, slidingItem)"
+                aria-label="Concluir tarefa"
+              >
+                <div class="opt-content">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  <span>Concluir</span>
+                </div>
+              </ion-item-option>
+            </ion-item-options>
 
-            <!-- Informações Centrais -->
-            <div class="task-details">
-              <h3 class="task-title">{{ tarefa.titulo }}</h3>
-              <div class="task-meta">
-                <span class="category-name">{{ tarefa.categoria }}</span>
-                <span class="meta-dot">•</span>
-                <span class="deadline-wrap">
-                  <ion-icon name="time-outline" class="clock-icon"></ion-icon>
-                  {{ tarefa.prazo || 'Hoje, 14:00' }}
-                </span>
-              </div>
-            </div>
+            <!-- Card da Tarefa -->
+            <ion-item lines="none" class="task-sliding-inner">
+              <ion-card class="task-card" (click)="abrirDetalhesModal(tarefa)">
+                <!-- Checkbox Circular -->
+                <div class="task-checkbox-wrap" (click)="$event.stopPropagation()">
+                  <ion-checkbox
+                    [checked]="tarefa.concluida"
+                    (ionChange)="onCheckboxChange(tarefa, $any($event))"
+                    aria-label="Marcar como concluída"
+                    class="circle-checkbox"
+                  ></ion-checkbox>
+                </div>
 
-            <!-- Badge de Prioridade à Direita -->
-            <div class="task-badge-wrap">
-              <ion-badge class="priority-tag" [ngClass]="'priority-' + tarefa.prioridade.toLowerCase()">
-                <ion-icon name="cellular-outline" class="priority-icon"></ion-icon>
-                {{ tarefa.prioridade }}
-              </ion-badge>
-            </div>
-          </ion-card>
+                <!-- Informações Centrais -->
+                <div class="task-details">
+                  <h3 class="task-title">{{ tarefa.titulo }}</h3>
+                  <div class="task-meta">
+                    <span class="category-name">{{ tarefa.categoria }}</span>
+                    <span class="meta-dot">•</span>
+                    <span class="deadline-wrap">
+                      <ion-icon name="time-outline" class="clock-icon"></ion-icon>
+                      {{ tarefa.prazo || 'Hoje, 14:00' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Badge de Prioridade à Direita -->
+                <div class="task-badge-wrap">
+                  <ion-badge class="priority-tag" [ngClass]="'priority-' + tarefa.prioridade.toLowerCase()">
+                    <ion-icon name="cellular-outline" class="priority-icon"></ion-icon>
+                    {{ tarefa.prioridade }}
+                  </ion-badge>
+                </div>
+              </ion-card>
+            </ion-item>
+
+            <!-- Opção Deslizar para Esquerda (side="end"): Apagar -->
+            <ion-item-options side="end">
+              <ion-item-option
+                class="sliding-opt-delete"
+                (click)="excluirTarefa(tarefa, slidingItem)"
+                aria-label="Apagar tarefa"
+              >
+                <div class="opt-content">
+                  <ion-icon name="trash-outline"></ion-icon>
+                  <span>Apagar</span>
+                </div>
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
         } @empty {
           <div class="empty-pending-state">
             <p>{{ temFiltroAtivo ? 'Nenhuma tarefa pendente com os filtros selecionados.' : 'Você não tem tarefas pendentes. Parabéns!' }}</p>
           </div>
         }
-      </div>
+      </ion-list>
     </section>
 
     <!-- 4. Seção: Tarefas Concluídas -->
@@ -125,30 +163,63 @@
         </button>
 
         @if (mostrarConcluidas) {
-          <div class="tasks-list completed-list">
+          <ion-list lines="none" class="tasks-list completed-list">
             @for (tarefa of tarefasConcluidasFiltradas; track tarefa.id) {
-              <ion-card class="task-card is-done" (click)="abrirDetalhesModal(tarefa)">
-                <div class="task-checkbox-wrap" (click)="$event.stopPropagation()">
-                  <ion-checkbox
-                    [checked]="true"
-                    (ionChange)="onCheckboxChange(tarefa, $any($event))"
-                    class="circle-checkbox"
-                  ></ion-checkbox>
-                </div>
-                <div class="task-details">
-                  <h3 class="task-title completed-title">{{ tarefa.titulo }}</h3>
-                  <div class="task-meta">
-                    <span>{{ tarefa.categoria }}</span>
-                    <span class="meta-dot">•</span>
-                    <span>Concluída</span>
-                  </div>
-                </div>
-                <div class="task-badge-wrap">
-                  <ion-badge class="priority-tag tag-done">Concluída</ion-badge>
-                </div>
-              </ion-card>
+              <ion-item-sliding #slidingItem class="task-sliding-item">
+                <!-- Opção Deslizar para Direita (side="start"): Desfazer -->
+                <ion-item-options side="start">
+                  <ion-item-option
+                    class="sliding-opt-undo"
+                    (click)="concluirTarefa(tarefa, slidingItem)"
+                    aria-label="Desfazer conclusão"
+                  >
+                    <div class="opt-content">
+                      <ion-icon name="arrow-undo-outline"></ion-icon>
+                      <span>Desfazer</span>
+                    </div>
+                  </ion-item-option>
+                </ion-item-options>
+
+                <!-- Card da Tarefa -->
+                <ion-item lines="none" class="task-sliding-inner">
+                  <ion-card class="task-card is-done" (click)="abrirDetalhesModal(tarefa)">
+                    <div class="task-checkbox-wrap" (click)="$event.stopPropagation()">
+                      <ion-checkbox
+                        [checked]="true"
+                        (ionChange)="onCheckboxChange(tarefa, $any($event))"
+                        class="circle-checkbox"
+                      ></ion-checkbox>
+                    </div>
+                    <div class="task-details">
+                      <h3 class="task-title completed-title">{{ tarefa.titulo }}</h3>
+                      <div class="task-meta">
+                        <span>{{ tarefa.categoria }}</span>
+                        <span class="meta-dot">•</span>
+                        <span>Concluída</span>
+                      </div>
+                    </div>
+                    <div class="task-badge-wrap">
+                      <ion-badge class="priority-tag tag-done">Concluída</ion-badge>
+                    </div>
+                  </ion-card>
+                </ion-item>
+
+                <!-- Opção Deslizar para Esquerda (side="end"): Apagar -->
+                <ion-item-options side="end">
+                  <ion-item-option
+                    class="sliding-opt-delete"
+                    (click)="excluirTarefa(tarefa, slidingItem)"
+                    aria-label="Apagar tarefa"
+                  >
+                    <div class="opt-content">
+                      <ion-icon name="trash-outline"></ion-icon>
+                      <span>Apagar</span>
+                    </div>
+                  </ion-item-option>
+                </ion-item-options>
+              </ion-item-sliding>
             }
-          </div>
+          </ion-list>
         }
       </section>
     }
@@ -166,6 +237,11 @@
       <button class="nav-pill-btn active-pill" (click)="limparFiltros()" aria-label="Tarefas">
         <ion-icon name="list-outline"></ion-icon>
         <span>Tarefas</span>
+      </button>
+
+      <!-- Botão de Estatísticas (Abre o Dashboard de Estatísticas) -->
+      <button class="nav-icon-btn" (click)="abrirEstatisticasModal()" aria-label="Estatísticas">
+        <ion-icon name="stats-chart-outline"></ion-icon>
       </button>
 
       <!-- Botão de Pesquisa (Abre o Bottom Sheet de Pesquisa e Filtros) -->
@@ -650,6 +726,22 @@
           </button>
         </div>
       </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 6: DASHBOARD DE ESTATÍSTICAS (BOTTOM SHEET 92%)     -->
+  <!-- ======================================================== -->
+  <ion-modal
+    [isOpen]="isEstatisticasModalOpen"
+    (didDismiss)="fecharEstatisticasModal()"
+    [initialBreakpoint]="0.92"
+    [breakpoints]="[0, 0.5, 0.92, 1]"
+    [handle]="true"
+    class="custom-sheet-modal stats-sheet-modal"
+  >
+    <ng-template>
+      <app-estatisticas [isModal]="true" (fechar)="fecharEstatisticasModal()"></app-estatisticas>
     </ng-template>
   </ion-modal>
 

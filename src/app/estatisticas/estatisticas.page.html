@@ -1,0 +1,179 @@
+<div class="stats-screen-wrapper" [class.is-modal-view]="isModal">
+
+  <!-- Cabeçalho do Dashboard -->
+  <header class="stats-header">
+    <div class="header-titles">
+      <div class="header-badge">
+        <ion-icon name="stats-chart"></ion-icon>
+        <span>Dashboard em tempo real</span>
+      </div>
+      <h1 class="main-stats-title">Estatísticas</h1>
+    </div>
+    @if (isModal) {
+      <button class="circle-close-btn" (click)="fecharTela()" aria-label="Fechar">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    } @else {
+      <a routerLink="/home" class="circle-close-btn" aria-label="Voltar para tarefas">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </a>
+    }
+  </header>
+
+  <div class="stats-scroll-body ion-content-scroll-host">
+    
+    <!-- 1. Cartão Principal: Taxa de Conclusão Global -->
+    <section class="highlight-stats-card">
+      <div class="card-glow-bg"></div>
+
+      <div class="highlight-top-row">
+        <div class="highlight-info">
+          <span class="highlight-caption">Taxa de Conclusão</span>
+          <h2 class="highlight-subtitle">
+            {{ stats.concluidas }} de {{ stats.total }} concluídas
+          </h2>
+        </div>
+        <div class="highlight-percentage">
+          {{ stats.taxaConclusao }}%
+        </div>
+      </div>
+
+      <!-- Barra de Progresso Personalizada (Verde-Limão) -->
+      <div class="custom-progress-track">
+        <div class="progress-fill" [style.width.%]="stats.taxaConclusao"></div>
+      </div>
+
+      <!-- Badges de Resumo em Pílula -->
+      <div class="summary-pills-row">
+        <div class="summary-pill pill-total">
+          <span class="pill-dot dot-total"></span>
+          <span class="pill-label">Total</span>
+          <strong class="pill-value">{{ stats.total }}</strong>
+        </div>
+        <div class="summary-pill pill-done">
+          <span class="pill-dot dot-done"></span>
+          <span class="pill-label">Concluídas</span>
+          <strong class="pill-value">{{ stats.concluidas }}</strong>
+        </div>
+        <div class="summary-pill pill-pending">
+          <span class="pill-dot dot-pending"></span>
+          <span class="pill-label">Pendentes</span>
+          <strong class="pill-value">{{ stats.pendentes }}</strong>
+        </div>
+      </div>
+
+      <!-- Insight Inteligente de Produtividade -->
+      <div class="smart-insight-box">
+        <div class="insight-icon-circle">
+          <ion-icon name="flash"></ion-icon>
+        </div>
+        <p class="insight-text">{{ insightTexto }}</p>
+      </div>
+    </section>
+
+    <!-- 2. Seção: Distribuição por Prioridade -->
+    <section class="stats-section">
+      <div class="section-title-row">
+        <div class="title-with-icon">
+          <ion-icon name="flag-outline"></ion-icon>
+          <h2 class="section-heading">Distribuição por Prioridade</h2>
+        </div>
+        <span class="section-tag">{{ stats.total }} tarefas</span>
+      </div>
+
+      <div class="priority-cards-grid">
+        @for (item of stats.porPrioridade; track item.prioridade) {
+          <div class="priority-metric-card" [ngClass]="'prio-' + item.prioridade.toLowerCase()">
+            <div class="prio-card-header">
+              <div class="prio-badge-wrap">
+                <ion-icon name="cellular-outline"></ion-icon>
+                <span>{{ item.prioridade }}</span>
+              </div>
+              <span class="prio-percent-tag">{{ item.percentualDoTotal }}% do total</span>
+            </div>
+
+            <div class="prio-counts-row">
+              <div class="prio-big-count">
+                <span class="count-number">{{ item.total }}</span>
+                <span class="count-sublabel">tarefas</span>
+              </div>
+              <div class="prio-status-split">
+                <div class="split-item done">
+                  <span class="split-dot"></span>
+                  <span>{{ item.concluidas }} concl.</span>
+                </div>
+                <div class="split-item pending">
+                  <span class="split-dot"></span>
+                  <span>{{ item.pendentes }} pend.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Barra de Progresso da Prioridade -->
+            <div class="mini-progress-bar">
+              <div class="mini-fill" [style.width.%]="item.taxaConclusao"></div>
+            </div>
+            <div class="prio-footer-meta">
+              <span>Taxa de conclusão</span>
+              <strong>{{ item.taxaConclusao }}%</strong>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- 3. Seção: Métricas por Categoria -->
+    <section class="stats-section">
+      <div class="section-title-row">
+        <div class="title-with-icon">
+          <ion-icon name="layers-outline"></ion-icon>
+          <h2 class="section-heading">Métricas por Categoria</h2>
+        </div>
+        <span class="section-tag">Foco: {{ categoriaMaisAtiva }}</span>
+      </div>
+
+      <div class="category-cards-grid">
+        @for (cat of stats.porCategoria; track cat.categoria) {
+          <div class="category-metric-card">
+            <div class="cat-card-top">
+              <div class="cat-icon-badge" [ngClass]="'cat-badge-' + cat.categoria.toLowerCase()">
+                <ion-icon [name]="getIconeCategoria(cat.categoria)"></ion-icon>
+              </div>
+              <div class="cat-title-wrap">
+                <h3 class="cat-name">{{ cat.categoria }}</h3>
+                <span class="cat-total-meta">{{ cat.total }} tarefa(s)</span>
+              </div>
+              <div class="cat-percent-circle">
+                <span>{{ cat.taxaConclusao }}%</span>
+              </div>
+            </div>
+
+            <!-- Barra de Progresso Horizontal -->
+            <div class="mini-progress-bar">
+              <div
+                class="mini-fill cat-fill"
+                [ngClass]="'fill-' + cat.categoria.toLowerCase()"
+                [style.width.%]="cat.taxaConclusao"
+              ></div>
+            </div>
+
+            <!-- Detalhes Concluídas vs Pendentes -->
+            <div class="cat-details-row">
+              <div class="cat-detail-pill pill-green">
+                <span class="mini-icon-check">✓</span>
+                <span>{{ cat.concluidas }} concluída(s)</span>
+              </div>
+              <div class="cat-detail-pill pill-gray">
+                <span class="mini-icon-clock">●</span>
+                <span>{{ cat.pendentes }} pendente(s)</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <div class="stats-bottom-spacer"></div>
+
+  </div>
+</div>
